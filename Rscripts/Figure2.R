@@ -41,18 +41,24 @@ subset3 <- amplicon@otu_table %>% data.frame %>% select(sort(names(.)))
 {
 # calculate R square, L2 distance and Bray Curtis distance
 r_squared <- numeric()
+p_value <- numeric()
 L2 <- numeric()
 bray_curtis <- numeric()
 for (i in 1:33) {
   r_squared[i] <- summary(lm(subset1[, i] ~ subset2[, i]))$r.squared
+  p_value[i] <- summary(lm(subset1[, i] ~ subset2[, i]))$coefficients[4]
   L2[i] <- vegdist(rbind(subset1[, i],subset2[, i]),method = "euclidean")
   bray_curtis[i] <- vegdist(rbind(subset1[, i],subset2[, i]), method = "bray")
 }
 
 # print median values
+df <- cbind(colnames(subset1),r_squared,p_value,L2,bray_curtis)
 median(r_squared)
+sd(r_squared)
 median(L2)
+sd(L2)
 median(bray_curtis)
+sd(bray_curtis)
 
 # for split violin plot
 R_violin <- data.frame(r_squared)
@@ -82,7 +88,8 @@ data <- data[!zero_rows, ]
 
 # Create a scatter plot with log-transformed data
 R2_1 <- paste("R² =", round(r_squared[1], 3))
-p1 <- ggplot(data, aes(x = X1, y = X2)) +
+p_value <- paste("p =", round(p_value[1], 3))
+p1 <- ggplot(data, aes(x = X1, y = ppX2)) +
   geom_point(size = 3, color = "skyblue", alpha = 0.6) + 
   labs(title = "One Representative Pair",
        x = "Relative Abundance (WMS)",
@@ -104,19 +111,25 @@ ggsave("./plots/2A.png", p1, width = 4, height = 3)
 {
   # calculate R square, L2 distance and Bray Curtis distance
   r_squared <- numeric()
+  p_value <-  numeric()
   L2 <- numeric()
   bray_curtis <- numeric()
   jaccard <- numeric()
   for (i in 1:33) {
     r_squared[i] <- summary(lm(subset1[, i] ~ subset3[, i]))$r.squared
+    p_value[i] <- summary(lm(subset1[, i] ~ subset2[, i]))$coefficients[4]
     L2[i] <- vegdist(rbind(subset1[, i],subset3[, i]),method = "euclidean")
     bray_curtis[i] <- vegdist(rbind(subset1[, i],subset3[, i]), method = "bray")
   }
   
   # print median values
+  df <- cbind(r_squared,p_value,L2,bray_curtis)
   median(r_squared)
+  sd(r_squared)
   median(L2)
+  sd(L2)
   median(bray_curtis)
+  sd(bray_curtis)
   
   # for split violin plot
   R_violin <- data.frame(r_squared)
@@ -146,6 +159,7 @@ ggsave("./plots/2A.png", p1, width = 4, height = 3)
   
   # Create a scatter plot with log-transformed data
   R2_1 <- paste("R² =", round(r_squared[6], 3))
+  p_value <- paste("p =", round(p_value[1], 3))
   p2 <- ggplot(data, aes(x = X1, y = X2)) +
     geom_point(size = 3, color = "gold", alpha = 0.8) + 
     labs(title = "One Representative Pair",
@@ -197,25 +211,32 @@ subset1 <- merged_feces_genus[, 2:35]
 subset2 <- merged_feces_genus[, 36:69]
 
 r_squared <- numeric()
+p_value <- numeric()
 L2 <- numeric()
 bray_curtis <- numeric()
 
 for (i in 1:34) {
   r_squared[i] <- summary(lm(subset1[, i] ~ subset2[, i]))$r.squared
+  p_value[i] <- summary(lm(subset1[, i] ~ subset2[, i]))$coefficients[4]
   L2[i] <- vegdist(rbind(subset1[, i],subset2[, i]),method = "euclidean")
   bray_curtis[i] <- vegdist(rbind(subset1[, i],subset2[, i]), method = "bray")
 }
 
 # print median values
+df <- cbind(r_squared,p_value,L2,bray_curtis)
 median(r_squared)
+sd(r_squared)
 median(L2)
+sd(L2)
 median(bray_curtis)
+sd(bray_curtis)
 
 # for split violin plot
 # R_violin[2] <- data.frame(r_squared)
 
 # Draw scatter plot
 R2_2 <- paste("R² =", round(r_squared[1], 3))
+p_value <- paste("p =", round(p_value[1], 3))
 p3 <- ggplot(merged_feces_genus, aes(x = MST.T2.02.x, y = MST.T2.02.y)) +
   geom_point(size = 3, color = "palegreen3", alpha = 0.8) + 
   labs(title = "One Representative Pair",

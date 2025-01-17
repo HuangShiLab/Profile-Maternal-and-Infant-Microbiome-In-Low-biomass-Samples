@@ -6,6 +6,17 @@
 # Author: HOU Shuwen
 #######################################
 
+# data import
+setwd("~/Downloads/data")
+
+# load RDS file
+all <- readRDS("all_phyloseq.rds")
+
+# subset phyloseq object by sample type
+feces <- subset_samples(all, (sequencing == "2bRAD") & (type == "feces"))
+meconium <- subset_samples(all, (sequencing == "2bRAD") & (type == "meconium"))
+milk <- subset_samples(all, (sequencing == "2bRAD") & (type == "milk"))
+
 # delivery in meconium
 # need tax table
 temp <- rownames(as.data.frame(meconium@otu_table))
@@ -123,9 +134,11 @@ for (i in seq_along(species_names)) {
     geom_beeswarm(alpha = 0.5, color = "black",size = 1, cex = 0.5) +
     scale_fill_manual(values = c("skyblue","palegreen3"),
                       labels = c("cesarean" = "Cesarean", "eutocia" = "Vaginal")) +
+    theme_minimal() +
     labs(title = paste0(species_names_cleaned[i]), x = "",
          y = "log(Relative Abundance + 1)", color = "Delivery Mode") +
     theme(panel.background = element_rect(fill = "white", color = NA),
+          plot.background = element_rect(fill = "white", color = NA), 
           panel.grid.major = element_blank(), 
           panel.grid.minor = element_blank(),
           axis.line = element_line(size = 0.5, color = "black"),

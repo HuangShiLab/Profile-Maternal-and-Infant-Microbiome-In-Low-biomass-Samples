@@ -78,4 +78,5 @@ plot2 <- ggplot(milk_T24_diff, aes(x = feature, y = ef_lda, fill = enrich_group)
         axis.line = element_line(size = 0.5, color = "black"),
         axis.text.y = element_text(hjust = ifelse(milk_T24_diff$ef_lda < 0, 1.8, 1.4)))
 plot2
-ggsave("./data/plots/4C.png", plot2, width = 11, height = 7)
+
+ggsave("./data/plots/4C.pdf", plot2, width = 11, height = 7)

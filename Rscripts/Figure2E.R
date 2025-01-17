@@ -19,6 +19,9 @@ library(dplyr)
 library(viridis)
 library(openxlsx)
 library(ggplot2)
+library(tidyr)
+library(tibble)  
+library(ggplot2)
 
 # subset phyloseq object
 RAD <- subset_samples(all, sequencing == "2bRAD")
@@ -62,26 +65,25 @@ filtered_all <- phyloseq_filter_prevalence(
   filter_1,
   prev.trh = 0.1)
 
-# tax profile (class level)
+# tax profile (phylum level)
 tax <- data.frame(filtered_all@tax_table)
-tip_class <- unique(tax$class)
+tip_phylum <- unique(tax$phylum)
+tax <- tax %>% rownames_to_column()
 
 # find parent node
-a=as.numeric(gcc_plot$data[a,1])
-class <- data.frame(id=c(191, 226,43,231,263,338,339,355), 
-                    type=unique(tax$class))
-class_color <- c("Gammaproteobacteria" = "#eacc76", 
-                 "Alphaproteobacteria" = "#5c7272",
-                 "Desulfovibrionia" = "#718c70", 
-                 "Bacteroidia" = "#acab4b",
-                 "Clostridia" = "#7c99bc", 
-                 "Negativicutes" = "#a5b3c1",
-                 "Bacilli" = "#c7a8a3", 
-                 "Actinomycetia" = "#e9b962")
+class <- data.frame(id=c(190,43,231,263,338,339,355), 
+                    type=tip_phylum)
+class_color <- c("Proteobacteria" = "#eacc76", 
+                 "Desulfobacterota" = "#5c7272",
+                 "Bacteroidota" = "#acab4b",
+                 "Firmicutes_A" = "#7c99bc", 
+                 "Firmicutes_C" = "#a5b3c1",
+                 "Firmicutes" = "#c7a8a3", 
+                 "Actinobacteriota" = "#e9b962")
 # ggtree skeleton
 gcc_plot = ggtree(filtered_all@phy_tree, layout="fan", open.angle = 2, size = 0.15, alpha = 1) +
   geom_tiplab(linesize=.15, mapping = aes(label = NA)) +
-  geom_highlight(data=class,mapping=aes(node=id, fill=type),alpha=0.8) +
+  geom_highlight(data=class,mapping=aes(node=id, fill=type),alpha=0.6) +
   scale_fill_manual(values = class_color, guide = "none") + 
   coord_polar(theta = 'y', start = 0, direction = -1) +
   theme(panel.background = element_rect(fill = "transparent", color = NA),
@@ -90,6 +92,9 @@ gcc_plot = ggtree(filtered_all@phy_tree, layout="fan", open.angle = 2, size = 0.
 gcc_plot
 ggsave("./plots/tree.png", gcc_plot, width = 4, height = 4)
 
+gcc_plot_data <- gcc_plot$data %>% filter(isTip)  %>%
+  left_join(tax, by = c("label" = "rowname")) %>%
+  distinct() %>% select(-isTip, -kindom)
 
 # first layer: prevalence in different sample types
 feces <- subset_samples(filtered_all, type == "feces")
@@ -207,3 +212,71 @@ layer1 <- layer1 +
             hjust = 0, vjust = 0.5, size = 3)
 layer1
 ggsave("./plots/layer2.png", layer1, width = 9, height = 9)
+
+## Find method specific species
+library(VennDiagram)
+RAD <- phyloseq_filter_prevalence(
+  subset_samples(all, sequencing == "2bRAD"),
+  prev.trh = 0.01)
+species_2b <- rownames(RAD@otu_table)
+
+WMS <- phyloseq_filter_prevalence(
+  subset_samples(all, sequencing == "WMS"),
+  prev.trh = 0.01)
+species_WMS <- rownames(WMS@otu_table)
+
+amp <- phyloseq_filter_prevalence(
+  subset_samples(all, sequencing == "16S"),
+  prev.trh = 0.01)
+species_16S <- rownames(amp@otu_table)
+
+# method_only
+RAD_only <- setdiff(species_2b, union(species_WMS, species_16S))
+WMS_only <- setdiff(species_WMS, union(species_2b, species_16S))
+amp_only <- setdiff(species_16S, union(species_2b, species_WMS))
+
+
+filtered_2bRAD <- as.data.frame(RAD@otu_table) %>% 
+  rownames_to_column(var = "ID") %>% filter(ID %in% RAD_only)
+filtered_WMS <- as.data.frame(WMS@otu_table) %>% 
+  rownames_to_column(var = "ID") %>% filter(ID %in% WMS_only)
+filtered_amp <- as.data.frame(amp@otu_table) %>% 
+  rownames_to_column(var = "ID") %>% filter(ID %in% amp_only)
+
+library(openxlsx)
+
+# Create a new workbook
+wb <- createWorkbook()
+
+# Add sheets and write data
+addWorksheet(wb, "Filtered_2bRAD")
+writeData(wb, "Filtered_2bRAD", filtered_2bRAD)
+
+addWorksheet(wb, "Filtered_WMS")
+writeData(wb, "Filtered_WMS", filtered_WMS)
+
+addWorksheet(wb, "Filtered_amp")
+writeData(wb, "Filtered_amp", filtered_amp)
+
+# Save the workbook
+saveWorkbook(wb, file = "filtered_data.xlsx", overwrite = TRUE)
+
+# Create a Venn diagram
+venn.plot <- venn.diagram(
+  x = list(Set1 = species_2b, Set2 = species_WMS, Set3 = species_16S),
+  category.names = c("2bRAD", "WMS", "16S"),
+  fill = c("red", "blue", "green"),
+  alpha = 0.5,
+  cex = 1.5,
+  cat.cex = 1.5,
+  lwd = 2,
+  filename = NULL  # Keeps the plot in memory
+)
+
+# Draw the Venn diagram
+grid.newpage()
+grid.draw(venn.plot)
+
+
+
+
